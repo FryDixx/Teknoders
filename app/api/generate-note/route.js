@@ -79,9 +79,10 @@ export async function POST(request) {
   try {
 const forwarded = request.headers.get('x-forwarded-for');
 
-const ip = forwarded
-  ? forwarded.split(',')[0]
-  : 'unknown';    
+const ip =
+  request.headers.get('x-real-ip') ||
+  request.headers.get('x-forwarded-for')?.split(',')[0] ||
+  crypto.randomUUID();  
   console.log('FORWARDED:', forwarded);
 console.log('IP:', ip);
 
@@ -142,10 +143,6 @@ const insertResult = await supabase
 console.log(insertResult);
 console.log('INSERTED');
     
-
-
-   
-
 
 
 if (authHeader) {
