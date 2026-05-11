@@ -99,6 +99,8 @@ if (authHeader) {
   const {
     data: { user: currentUser },
   } = await supabase.auth.getUser(token);
+  console.log('USER:', user);
+console.log('IP:', ip);
 
   user = currentUser;
 }
