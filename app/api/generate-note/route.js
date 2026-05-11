@@ -1,12 +1,18 @@
 import OpenAI from 'openai';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
 const apiKey = process.env.OPENAI_API_KEY;
 const client = apiKey ? new OpenAI({ apiKey }) : null;
 
-const DAILY_LIMIT = 5;
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
-globalThis.aiUsageStore = globalThis.aiUsageStore || new Map();
+
+
+
 
 function getClientIp(request) {
   const forwardedFor = request.headers.get('x-forwarded-for');
@@ -23,48 +29,7 @@ function getClientIp(request) {
   return 'local-user';
 }
 
-function checkDailyLimit(ip) {
-  const now = Date.now();
-  const usage = globalThis.aiUsageStore.get(ip);
 
-  if (!usage || now - usage.startedAt > ONE_DAY_MS) {
-    globalThis.aiUsageStore.set(ip, {
-      count: 0,
-      startedAt: now,
-    });
-
-    return {
-      allowed: true,
-      remaining: DAILY_LIMIT,
-    };
-  }
-
-  const remaining = Math.max(0, DAILY_LIMIT - usage.count);
-
-  return {
-    allowed: usage.count < DAILY_LIMIT,
-    remaining,
-  };
-}
-
-function increaseUsage(ip) {
-  const now = Date.now();
-  const usage = globalThis.aiUsageStore.get(ip);
-
-  if (!usage || now - usage.startedAt > ONE_DAY_MS) {
-    globalThis.aiUsageStore.set(ip, {
-      count: 1,
-      startedAt: now,
-    });
-
-    return DAILY_LIMIT - 1;
-  }
-
-  usage.count += 1;
-  globalThis.aiUsageStore.set(ip, usage);
-
-  return Math.max(0, DAILY_LIMIT - usage.count);
-}
 
 function cleanGeneratedNote(text) {
   if (!text) return '';
@@ -113,21 +78,80 @@ function cleanGeneratedNote(text) {
 export async function POST(request) {
   try {
     const ip = getClientIp(request);
-    const limitStatus = checkDailyLimit(ip);
+    
 
-    if (!limitStatus.allowed) {
-      return Response.json(
-        {
-          error:
-            'Günlük AI not oluşturma limitine ulaştın. Bugün en fazla 5 AI not oluşturabilirsin. Yarın tekrar deneyebilirsin.',
-          remaining: 0,
-          limit: DAILY_LIMIT,
-        },
-        { status: 429 }
-      );
-    }
+    
 
     const body = await request.json();
+    const authHeader = request.headers.get('authorization');
+
+let user = null;
+
+if (authHeader) {
+  const token = authHeader.replace('Bearer ', '');
+
+  const {
+    data: { user: currentUser },
+  } = await supabase.auth.getUser(token);
+
+  user = currentUser;
+}
+
+const todayStart = new Date();
+todayStart.setHours(0, 0, 0, 0);
+
+let usageQuery = supabase
+  .from('note_usage')
+  .select('*', { count: 'exact', head: true })
+  .gte('created_at', todayStart.toISOString());
+
+if (user) {
+  usageQuery = usageQuery.eq('user_id', user.id);
+} else {
+  usageQuery = usageQuery.eq('ip', ip);
+}
+
+const { count } = await usageQuery;
+console.log('COUNT:', count);
+console.log('USER:', user?.id);
+console.log('IP:', ip);
+
+const limit = user ? 5 : 1;
+
+if (count >= limit) {
+  return Response.json(
+    {
+      error: 'Günlük not oluşturma limitin doldu.',
+    },
+    { status: 429 }
+  );
+}
+
+const insertResult = await supabase
+  .from('note_usage')
+  .insert({
+    user_id: user?.id || null,
+    ip,
+  });
+
+console.log(insertResult);
+console.log('INSERTED');
+    
+
+
+   
+
+
+
+if (authHeader) {
+  const token = authHeader.replace('Bearer ', '');
+
+  const {
+    data: { user: currentUser },
+  } = await supabase.auth.getUser(token);
+
+  user = currentUser;
+}
     const { grade, lesson, topic, level, outputType, extra } = body;
 
     if (!lesson || !topic) {
@@ -211,6 +235,14 @@ Kullanıcı bilgileri:
 
     const rawNote = response.output_text?.trim();
     const note = cleanGeneratedNote(rawNote);
+    if (user) {
+  await supabase.from('saved_notes').insert({
+    user_id: user.id,
+    lesson,
+    topic,
+    note,
+  });
+}
 
     if (!note) {
       return Response.json(
@@ -219,13 +251,10 @@ Kullanıcı bilgileri:
       );
     }
 
-    const remaining = increaseUsage(ip);
 
     return Response.json({
-      note,
-      remaining,
-      limit: DAILY_LIMIT,
-    });
+  note,
+});
   } catch (error) {
     console.error('OPENAI HATASI:', error);
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { supabase } from './lib/supabase';
 import { useEffect, useRef, useState } from 'react';
 
 const curriculum = {
@@ -623,6 +624,7 @@ function CustomSelect({
   const boxRef = useRef(null);
 
   useEffect(() => {
+    
     function handleClickOutside(event) {
       if (boxRef.current && !boxRef.current.contains(event.target)) {
         setOpen(false);
@@ -713,6 +715,44 @@ function estimateRankFromOsymDistribution(score, type) {
 }
 
 export default function Home() {
+  async function loginWithGoogle() {
+  await supabase.auth.signInWithOAuth({
+    provider: 'google',
+  }); 
+}
+async function logout() {
+  await supabase.auth.signOut();
+  location.reload();
+}
+async function loadSavedNotes() {
+  
+async function deleteSavedNote(id) {
+  await supabase
+    .from('saved_notes')
+    .delete()
+    .eq('id', id);
+
+  setSavedNotes((prev) =>
+    prev.filter((item) => item.id !== id)
+  );
+
+  if (selectedHistoryNote?.id === id) {
+    setSelectedHistoryNote(null);
+  }
+}
+  if (!user) return;
+
+  const { data } = await supabase
+    .from('saved_notes')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', {
+      ascending: false,
+    });
+
+  setSavedNotes(data || []);
+  setShowHistory(true);
+}
   const [grade, setGrade] = useState('TYT');
   const [lesson, setLesson] = useState('Türkçe');
   const [topic, setTopic] = useState('Sözcükte Anlam');
@@ -721,6 +761,13 @@ export default function Home() {
   const [extra, setExtra] = useState('');
   const [note, setNote] = useState('Henüz ders notu oluşturulmadı. Sınıfını, dersini ve konunu seçip ilk notunu oluşturabilirsin.');
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [user, setUser] = useState(null);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [savedNotes, setSavedNotes] = useState([]);
+  const [selectedHistoryNote, setSelectedHistoryNote] = useState(null);
+  const [session, setSession] = useState(null);
   const [aiUsageInfo, setAiUsageInfo] = useState('');
 
   const [scoreType, setScoreType] = useState('Sayısal');
@@ -728,6 +775,12 @@ export default function Home() {
   const [calculatedYks, setCalculatedYks] = useState(null);
   const [needsRecalculate, setNeedsRecalculate] = useState(false);
   const [yksError, setYksError] = useState('');
+  useEffect(() => {
+  supabase.auth.getSession().then(({ data }) => {
+  setSession(data.session);
+  setUser(data.session?.user || null);
+});
+}, []);
 
   const [exam, setExam] = useState({
     tytTurkish: { d: '30', y: '10', max: 40 },
@@ -1006,13 +1059,37 @@ export default function Home() {
     try {
       const res = await fetch('/api/generate-note', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+  'Content-Type': 'application/json',
+  Authorization: `Bearer ${session?.access_token || ''}`,
+},
         body: JSON.stringify({ grade, lesson, topic, level, outputType, extra }),
       });
 
       const data = await res.json();
+      console.log(data);
 
       if (!res.ok) {
+        if (!res.ok) {
+ if (user) {
+  setErrorMessage(
+    'Günlük not oluşturma hakkın doldu. Yarın tekrar deneyebilirsin.'
+  );
+} else {
+  setErrorMessage(
+    'Ücretsiz kullanım hakkın doldu. Daha fazla günlük hak için Google ile giriş yapabilirsin.'
+  );
+}
+
+setTimeout(() => {
+  setErrorMessage('');
+}, 5000);
+
+setTimeout(() => {
+  setErrorMessage('');
+}, 5000);
+  return;
+}
         setNote(data.error || 'Bir hata oluştu.');
 
         if (typeof data.remaining === 'number' && data.limit) {
@@ -1047,11 +1124,28 @@ export default function Home() {
       setLoading(false);
     }
   }
+  async function deleteSavedNote(id) {
+  await supabase
+    .from('saved_notes')
+    .delete()
+    .eq('id', id);
+
+  setSavedNotes((prev) =>
+    prev.filter((item) => item.id !== id)
+  );
+
+  if (selectedHistoryNote?.id === id) {
+    setSelectedHistoryNote(null);
+  }
+}
 
   function renderExamRow(title, testKey) {
     const test = exam[testKey];
 
     return (
+
+      
+
       <div className="exam-row" key={testKey}>
         <strong>{title}</strong>
 
@@ -1076,8 +1170,13 @@ export default function Home() {
     );
   }
 
-  return (
+   return (
     <main className="app-shell" style={dynamicTheme}>
+    {errorMessage && (
+  <div className="custom-error">
+    {errorMessage}
+  </div>
+)}
       {loading && (
         <div className="loading-overlay">
           <div className="loading-card">
@@ -1103,6 +1202,52 @@ export default function Home() {
             <button onClick={() => goTo('ai-note')}>AI Not</button>
             <button onClick={() => goTo('tools')}>YKS Araçları</button>
           </nav>
+
+          {user ? (
+<div
+  className="user-box"
+  onClick={() =>
+    setShowProfileMenu(!showProfileMenu)
+  }
+>
+  <img
+    src={user.user_metadata?.avatar_url}
+    alt="Profil"
+    className="user-avatar"
+  />
+
+  <span>
+    {user.user_metadata?.name}
+  </span>
+
+  <button className="logout-btn" onClick={logout}>
+    Çıkış Yap
+  </button>
+  {showProfileMenu && (
+  <div className="profile-menu">
+
+    <button>
+      Profilim
+    </button>
+
+    <button onClick={loadSavedNotes}>
+  Not Geçmişi
+</button>
+    <button
+      className="logout-btn"
+      onClick={logout}
+    >
+      Çıkış Yap
+    </button>
+
+  </div>
+)}
+</div>
+) : (
+  <button className="top-btn" onClick={loginWithGoogle}>
+    Google ile Giriş Yap
+  </button>
+)}
 
           <button className="top-btn" onClick={() => goTo('ai-note')}>
             Başla
@@ -1435,6 +1580,118 @@ export default function Home() {
     © 2026 Teknoders — AI destekli öğrenci platformu
   </p>
 </footer>
+{showHistory && (
+  <div
+    className="history-overlay"
+    onClick={() => setShowHistory(false)}
+  >
+    <div
+      className="history-modal"
+      onClick={(e) => e.stopPropagation()}
+    >
+
+      <div className="history-header">
+        <h2>Not Geçmişi</h2>
+
+        <button onClick={() => setShowHistory(false)}>
+          ✕
+        </button>
+      </div>
+
+      <div className="history-list">
+        {savedNotes.length === 0 ? (
+          <p>Henüz kayıtlı not yok.</p>
+        ) : (
+          savedNotes.map((item) => (
+            <div
+  key={item.id}
+  className="history-card"
+  onClick={() => {
+  localStorage.setItem(
+    'Teknoders_last_note',
+    JSON.stringify({
+      note: item.note,
+      lesson: item.lesson,
+      topic: item.topic,
+      grade: grade,
+      level: level,
+      outputType: outputType,
+      createdAt: item.created_at,
+    })
+  );
+
+  window.location.href = '/note';
+}}
+>
+              <strong>
+                {item.lesson}
+              </strong>
+
+              <span>
+                {item.topic}
+              </span>
+
+              <small>
+                {new Date(
+                  item.created_at
+                ).toLocaleString('tr-TR')}
+              </small>
+              <button
+  className="delete-history-btn"
+  onClick={(e) => {
+    e.stopPropagation();
+    deleteSavedNote(item.id);
+  }}
+>
+  Sil
+</button>
+            </div>
+          ))
+        )}
+      </div>
+
+    </div>
+  </div>
+)}
+{selectedHistoryNote && (
+  <div
+    className="history-overlay"
+    onClick={() =>
+      setSelectedHistoryNote(null)
+    }
+  >
+    <div
+      className="history-modal"
+      onClick={(e) => e.stopPropagation()}
+    >
+
+      <div className="history-header">
+        <h2>
+          {selectedHistoryNote.lesson}
+        </h2>
+
+        <button
+          onClick={() =>
+            setSelectedHistoryNote(null)
+          }
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className="history-note-content">
+        <h3>
+          {selectedHistoryNote.topic}
+        </h3>
+
+        <pre>
+          {selectedHistoryNote.note}
+        </pre>
+      </div>
+
+    </div>
+  </div>
+)}
     </main>
   );
 }
