@@ -77,8 +77,11 @@ function cleanGeneratedNote(text) {
 
 export async function POST(request) {
   try {
-    const ip = getClientIp(request);
-    
+const forwarded = request.headers.get('x-forwarded-for');
+
+const ip = forwarded
+  ? forwarded.split(',')[0]
+  : 'unknown';    
 
     
 
