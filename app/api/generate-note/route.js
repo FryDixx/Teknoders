@@ -126,8 +126,6 @@ console.log('IP:', ip);
 
 const limit = user ? 5 : 1;
 
-const limit = 999999;
-
 const insertResult = await supabase
   .from('note_usage')
   .insert({

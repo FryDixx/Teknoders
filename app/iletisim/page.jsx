@@ -16,10 +16,6 @@ export default function IletisimPage() {
           <p>iletisim@Teknoders.com</p>
         </div>
 
-        <p>
-          Not: Bu e-posta adresi alan adı alındıktan sonra aktif hale getirilecektir. Yayına çıkmadan önce burayı gerçek
-          iletişim adresiyle değiştirmeliyiz.
-        </p>
 
         <h2>Geri Bildirim</h2>
         <p>
