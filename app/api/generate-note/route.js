@@ -120,13 +120,24 @@ if (user) {
 }
 
 const { count } = await usageQuery;
+if (count >= limit) {
+  return Response.json(
+    {
+      error: user
+        ? 'Günlük not oluşturma hakkın doldu.'
+        : 'Ücretsiz kullanım hakkın doldu. Giriş yaparak daha fazla hak kazanabilirsin.',
+      remaining: 0,
+      limit,
+    },
+    { status: 429 }
+  );
+}
 console.log('COUNT:', count);
 console.log('USER:', user?.id);
 console.log('IP:', ip);
 
 console.log('LIMIT BYPASS ACTIVE');
-const limit = 999999;
-
+const limit = user ? 5 : 1;
 const insertResult = await supabase
   .from('note_usage')
   .insert({
