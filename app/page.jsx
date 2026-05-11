@@ -1377,6 +1377,12 @@ async function deleteSavedNote(id) {
               Not: Bu araç öğrenmeye yardımcıdır. Önemli konuları öğretmenin ve ders kitabınla kontrol et.
             </p>
 
+                  {errorMessage && (
+  <div className="error-box">
+    {errorMessage}
+  </div>
+)}
+
             <button className="btn" onClick={generateNote} disabled={loading}>
               {loading ? 'Hazırlanıyor...' : 'Ders Notu Oluştur'}
             </button>

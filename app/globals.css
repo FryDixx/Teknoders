@@ -1611,3 +1611,13 @@ transition: 0.22s ease;
   background: #fecaca;
   transform: scale(1.02);
 }
+
+.error-box {
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 14px 18px;
+  border-radius: 16px;
+  margin-top: 16px;
+  font-weight: 600;
+  animation: fadeIn 0.2s ease;
+}
