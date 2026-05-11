@@ -1070,34 +1070,19 @@ async function deleteSavedNote(id) {
       console.log(data);
 
       if (!res.ok) {
-        if (!res.ok) {
- if (user) {
-  setErrorMessage(
-    'Günlük not oluşturma hakkın doldu. Yarın tekrar deneyebilirsin.'
-  );
-} else {
-  setErrorMessage(
-    'Ücretsiz kullanım hakkın doldu. Daha fazla günlük hak için Google ile giriş yapabilirsin.'
-  );
-}
+  const errorData = await res.json();
 
-setTimeout(() => {
-  setErrorMessage('');
-}, 5000);
+  setErrorMessage(
+    errorData.error || 'Bir hata oluştu.'
+  );
 
-setTimeout(() => {
-  setErrorMessage('');
-}, 5000);
+  setTimeout(() => {
+    setErrorMessage('');
+  }, 5000);
+
+  setLoading(false);
   return;
 }
-        setNote(data.error || 'Bir hata oluştu.');
-
-        if (typeof data.remaining === 'number' && data.limit) {
-          setAiUsageInfo(`Bugünkü kalan AI not hakkın: ${data.remaining}/${data.limit}`);
-        }
-
-        return;
-      }
 
       const notePayload = {
         note: data.note,

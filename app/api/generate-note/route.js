@@ -124,7 +124,8 @@ console.log('COUNT:', count);
 console.log('USER:', user?.id);
 console.log('IP:', ip);
 
-const limit = user ? 5 : 1;
+console.log('LIMIT BYPASS ACTIVE');
+const limit = 999999;
 
 const insertResult = await supabase
   .from('note_usage')
