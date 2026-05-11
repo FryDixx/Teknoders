@@ -138,6 +138,16 @@ console.log('IP:', ip);
 
 console.log('LIMIT BYPASS ACTIVE');
 const limit = user ? 5 : 1;
+if (count >= limit) {
+  return Response.json(
+    {
+      error: user
+        ? 'Günlük not oluşturma hakkın doldu. Yarın tekrar deneyebilirsin.'
+        : 'Ücretsiz kullanım hakkın doldu. Daha fazla günlük hak için Google ile giriş yapabilirsin.',
+    },
+    { status: 429 }
+  );
+}
 const insertResult = await supabase
   .from('note_usage')
   .insert({
