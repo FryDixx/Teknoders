@@ -82,6 +82,8 @@ const forwarded = request.headers.get('x-forwarded-for');
 const ip = forwarded
   ? forwarded.split(',')[0]
   : 'unknown';    
+  console.log('FORWARDED:', forwarded);
+console.log('IP:', ip);
 
     
 
