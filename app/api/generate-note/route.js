@@ -126,14 +126,7 @@ console.log('IP:', ip);
 
 const limit = user ? 5 : 1;
 
-if (count >= limit) {
-  return Response.json(
-    {
-      error: 'Günlük not oluşturma limitin doldu.',
-    },
-    { status: 429 }
-  );
-}
+const limit = 999999;
 
 const insertResult = await supabase
   .from('note_usage')
