@@ -1070,24 +1070,13 @@ async function deleteSavedNote(id) {
       console.log(data);
 
      if (!res.ok) {
-  const errorData = await res.json();
-
-  if (res.status === 429) {
-    setErrorMessage(
-      errorData.error
-    );
-
-    setTimeout(() => {
-      setErrorMessage('');
-    }, 5000);
-
-    setLoading(false);
-    return;
-  }
-
-  setNote(
-    errorData.error || 'Bir hata oluştu.'
+  setErrorMessage(
+    data.error || 'Bir hata oluştu.'
   );
+
+  setTimeout(() => {
+    setErrorMessage('');
+  }, 5000);
 
   setLoading(false);
   return;
