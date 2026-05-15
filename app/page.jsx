@@ -1,310 +1,71 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import CustomSelect from './components/CustomSelect';
-import { curriculum, lessonThemes, levelThemes, OSYM_2025 } from './data/curriculum';
-import { useAuth } from './components/AuthProvider';
+import Link from 'next/link';
+import { BookOpen, Calculator, Users, MessageCircle, ArrowRight } from 'lucide-react';
 
-function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, value));
-}
-
-function calculateNet(correct, wrong) {
-  return Number(correct || 0) - Number(wrong || 0) / 4;
-}
-
-function standardScore(net, key) {
-  const stat = OSYM_2025.averages[key];
-  if (!stat || stat.sd === 0) return 50;
-  return 50 + 10 * ((net - stat.mean) / stat.sd);
-}
-
-function estimateRankFromOsymDistribution(score, type) {
-  const table = OSYM_2025.placementDistribution[type] || OSYM_2025.placementDistribution.Sayısal;
-  if (score >= table[0][0]) return `İlk ${table[0][1].toLocaleString('tr-TR')}`;
-
-  for (let i = 0; i < table.length - 1; i++) {
-    const [highScore, highRank] = table[i];
-    const [lowScore, lowRank] = table[i + 1];
-
-    if (score <= highScore && score >= lowScore) {
-      const ratio = (highScore - score) / (highScore - lowScore);
-      const estimated = Math.round(highRank + ratio * (lowRank - highRank));
-      return `Yaklaşık ${estimated.toLocaleString('tr-TR')}`;
-    }
-  }
-  const lastRank = table[table.length - 1][1];
-  return `${lastRank.toLocaleString('tr-TR')}+`;
-}
-
-export default function Home() {
-  const { session } = useAuth();
-  const [grade, setGrade] = useState('TYT');
-  const [lesson, setLesson] = useState('Türkçe');
-  const [topic, setTopic] = useState('Sözcükte Anlam');
-  const [level, setLevel] = useState('Sınav odaklı');
-  const [outputType, setOutputType] = useState('Detaylı ders notu');
-  const [extra, setExtra] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [aiUsageInfo, setAiUsageInfo] = useState('');
-
-  const [scoreType, setScoreType] = useState('Sayısal');
-  const [diplomaGrade, setDiplomaGrade] = useState('80');
-  const [calculatedYks, setCalculatedYks] = useState(null);
-  const [needsRecalculate, setNeedsRecalculate] = useState(false);
-  const [yksError, setYksError] = useState('');
-
-  const [exam, setExam] = useState({
-    tytTurkish: { d: '30', y: '10', max: 40 },
-    tytSocial: { d: '12', y: '4', max: 20 },
-    tytMath: { d: '22', y: '6', max: 40 },
-    tytScience: { d: '10', y: '4', max: 20 },
-    aytMath: { d: '25', y: '5', max: 40 },
-    aytPhysics: { d: '8', y: '3', max: 14 },
-    aytChem: { d: '8', y: '2', max: 13 },
-    aytBio: { d: '8', y: '2', max: 13 },
-    aytEdebiyat: { d: '16', y: '4', max: 24 },
-    aytTarih1: { d: '7', y: '2', max: 10 },
-    aytCografya1: { d: '4', y: '1', max: 6 },
-    aytTarih2: { d: '7', y: '2', max: 11 },
-    aytCografya2: { d: '7', y: '2', max: 11 },
-    aytFelsefe: { d: '8', y: '2', max: 12 },
-    aytDin: { d: '4', y: '1', max: 6 },
-  });
-
-  const availableLessons = Object.keys(curriculum[grade] || {});
-  const availableTopics = curriculum[grade]?.[lesson] || [];
-  const currentLessonTheme = lessonThemes[lesson] || { icon: '📘' };
-
-  function markYksDirty() {
-    if (calculatedYks) setNeedsRecalculate(true);
-  }
-
-  function updateExamValue(testKey, field, rawValue) {
-    const cleanedValue = rawValue.replace(/\D/g, '');
-    setExam((prev) => ({
-      ...prev,
-      [testKey]: { ...prev[testKey], [field]: cleanedValue },
-    }));
-    setYksError('');
-    markYksDirty();
-  }
-
-  function buildYksResult() {
-    const nets = {
-      tytTurkish: calculateNet(exam.tytTurkish.d, exam.tytTurkish.y),
-      tytSocial: calculateNet(exam.tytSocial.d, exam.tytSocial.y),
-      tytMath: calculateNet(exam.tytMath.d, exam.tytMath.y),
-      tytScience: calculateNet(exam.tytScience.d, exam.tytScience.y),
-      aytMath: calculateNet(exam.aytMath.d, exam.aytMath.y),
-      aytPhysics: calculateNet(exam.aytPhysics.d, exam.aytPhysics.y),
-      aytChem: calculateNet(exam.aytChem.d, exam.aytChem.y),
-      aytBio: calculateNet(exam.aytBio.d, exam.aytBio.y),
-      aytEdebiyat: calculateNet(exam.aytEdebiyat.d, exam.aytEdebiyat.y),
-      aytTarih1: calculateNet(exam.aytTarih1.d, exam.aytTarih1.y),
-      aytCografya1: calculateNet(exam.aytCografya1.d, exam.aytCografya1.y),
-      aytTarih2: calculateNet(exam.aytTarih2.d, exam.aytTarih2.y),
-      aytCografya2: calculateNet(exam.aytCografya2.d, exam.aytCografya2.y),
-      aytFelsefe: calculateNet(exam.aytFelsefe.d, exam.aytFelsefe.y),
-      aytDin: calculateNet(exam.aytDin.d, exam.aytDin.y),
-    };
-
-    const totalTytNet = nets.tytTurkish + nets.tytSocial + nets.tytMath + nets.tytScience;
-    const sayisalAytNet = nets.aytMath + nets.aytPhysics + nets.aytChem + nets.aytBio;
-    const eaAytNet = nets.aytMath + nets.aytEdebiyat + nets.aytTarih1 + nets.aytCografya1;
-    const sozelAytNet = nets.aytEdebiyat + nets.aytTarih1 + nets.aytCografya1 + nets.aytTarih2 + nets.aytCografya2 + nets.aytFelsefe + nets.aytDin;
-
-    const selectedAytNet = scoreType === 'Sayısal' ? sayisalAytNet : scoreType === 'Eşit Ağırlık' ? eaAytNet : sozelAytNet;
-    const obp = Number(diplomaGrade) * 0.6;
-
-    const tytStandard = standardScore(nets.tytTurkish, 'tytTurkish') * 0.33 + standardScore(nets.tytSocial, 'tytSocial') * 0.17 + standardScore(nets.tytMath, 'tytMath') * 0.33 + standardScore(nets.tytScience, 'tytScience') * 0.17;
-    const estimatedTytScore = clamp(100 + tytStandard * 4, 100, 500);
-
-    let aytStandard = 0;
-    if (scoreType === 'Sayısal') {
-      aytStandard = standardScore(nets.aytMath, 'aytMath') * 0.5 + standardScore(nets.aytPhysics, 'aytPhysics') * 0.166 + standardScore(nets.aytChem, 'aytChem') * 0.167 + standardScore(nets.aytBio, 'aytBio') * 0.167;
-    } else if (scoreType === 'Eşit Ağırlık') {
-      aytStandard = standardScore(nets.aytMath, 'aytMath') * 0.5 + standardScore(nets.aytEdebiyat, 'aytEdebiyat') * 0.3 + standardScore(nets.aytTarih1, 'aytTarih1') * 0.1 + standardScore(nets.aytCografya1, 'aytCografya1') * 0.1;
-    } else {
-      aytStandard = standardScore(nets.aytEdebiyat, 'aytEdebiyat') * 0.3 + standardScore(nets.aytTarih1, 'aytTarih1') * 0.1 + standardScore(nets.aytCografya1, 'aytCografya1') * 0.1 + standardScore(nets.aytTarih2, 'aytTarih2') * 0.1 + standardScore(nets.aytCografya2, 'aytCografya2') * 0.1 + standardScore(nets.aytFelsefe, 'aytFelsefe') * 0.2 + standardScore(nets.aytDin, 'aytDin') * 0.1;
-    }
-
-    const estimatedRawScore = clamp(estimatedTytScore * 0.4 + (100 + aytStandard * 4) * 0.6, 100, 500);
-    const estimatedPlacementScore = clamp(estimatedRawScore + obp, 100, 560);
-    const estimatedRank = estimateRankFromOsymDistribution(estimatedPlacementScore, scoreType);
-
-    return { nets, totalTytNet, selectedAytNet, obp, estimatedTytScore, estimatedRawScore, estimatedPlacementScore, estimatedRank, scoreType };
-  }
-
-  function calculateYks() {
-    const diplomaNumber = Number(diplomaGrade || 0);
-    if (!diplomaGrade || diplomaNumber < 50 || diplomaNumber > 100) {
-      setYksError('Diploma notu 50 ile 100 arasında olmalıdır.');
-      return;
-    }
-    setYksError('');
-    setCalculatedYks(buildYksResult());
-    setNeedsRecalculate(false);
-  }
-
-  async function generateNote() {
-    setLoading(true);
-    setAiUsageInfo('');
-
-    try {
-      const res = await fetch('/api/generate-note', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
-        body: JSON.stringify({ grade, lesson, topic, level, outputType, extra }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        setErrorMessage(data.error || 'Bir hata oluştu.');
-        setTimeout(() => setErrorMessage(''), 5000);
-        return;
-      }
-
-      const notePayload = {
-        note: data.note, grade, lesson, topic, level, outputType,
-        createdAt: new Date().toLocaleString('tr-TR'),
-        remaining: data.remaining, limit: data.limit,
-      };
-
-      localStorage.setItem('Teknoders_last_note', JSON.stringify(notePayload));
-      window.location.href = '/note';
-    } catch (error) {
-      setErrorMessage('Bağlantı hatası oluştu.');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function renderExamRow(title, testKey) {
-    const test = exam[testKey];
-    return (
-      <div key={testKey} style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-        <strong style={{ width: '120px' }}>{title}</strong>
-        <input style={{ width: '80px' }} type="text" inputMode="numeric" value={test.d} onChange={(e) => updateExamValue(testKey, 'd', e.target.value)} placeholder="D" />
-        <input style={{ width: '80px' }} type="text" inputMode="numeric" value={test.y} onChange={(e) => updateExamValue(testKey, 'y', e.target.value)} placeholder="Y" />
-        <span style={{ fontWeight: 700, color: 'var(--primary)' }}>{calculatedYks ? calculatedYks.nets[testKey].toFixed(2) : '-'}</span>
-      </div>
-    );
-  }
-
+export default function LandingPage() {
   return (
-    <main className="container" style={{ padding: '2rem 1rem' }}>
-      {errorMessage && (
-        <div style={{ padding: '1rem', background: 'var(--danger-soft)', color: 'var(--danger)', borderRadius: 'var(--radius-md)', marginBottom: '1rem' }}>
-          {errorMessage}
-        </div>
-      )}
-
+    <main style={{ minHeight: 'calc(100vh - 6rem)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem' }}>
+      
       {/* Hero Section */}
-      <section style={{ textAlign: 'center', marginBottom: '4rem' }}>
-        <h1 style={{ fontSize: '2.5rem', fontWeight: 900, marginBottom: '1rem' }}>Ders notunu sınıfına ve konuna göre oluştur.</h1>
-        <p style={{ color: 'var(--text-muted)', maxWidth: '600px', margin: '0 auto 2rem' }}>
-          Sınıfını, dersini ve konunu seç. Teknoders sana düzenli bir ders notu, önemli noktalar ve mini tekrar soruları hazırlasın.
+      <section style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto 4rem' }}>
+        <h1 style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 900, lineHeight: 1.1, marginBottom: '1.5rem' }}>
+          Öğrenmenin <span style={{ background: 'var(--primary-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Yeni ve Sosyal</span> Yolu
+        </h1>
+        <p style={{ fontSize: '1.125rem', color: 'var(--text-muted)', marginBottom: '2.5rem', lineHeight: 1.6 }}>
+          Teknoders sadece bir ders notu aracı değil. Senin gibi binlerce öğrencinin bulunduğu, notlarını paylaşabildiği, 
+          sorularını çözdürdüğü ve hedeflerine ulaştığı devasa bir öğrenci platformudur.
         </p>
+        
+        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <Link href="/not-olustur" className="btn-primary" style={{ padding: '1rem 2rem', fontSize: '1.1rem' }}>
+            Hemen Not Oluştur <ArrowRight size={20} />
+          </Link>
+          <Link href="/topluluk" className="btn-secondary" style={{ padding: '1rem 2rem', fontSize: '1.1rem' }}>
+            Topluluğa Katıl
+          </Link>
+        </div>
       </section>
 
-      {/* AI Note Generator */}
-      <section id="ai-note" className="card" style={{ marginBottom: '4rem' }}>
-        <div style={{ marginBottom: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>AI Ders Notu Oluşturucu</h2>
-          <p style={{ color: 'var(--text-muted)' }}>Sınıf, ders, konu ve seviye seç.</p>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-          <CustomSelect label="Sınıf / Alan" value={grade} options={Object.keys(curriculum)} onChange={(v) => { setGrade(v); setLesson(Object.keys(curriculum[v])[0]); setTopic(curriculum[v][Object.keys(curriculum[v])[0]][0]); }} />
-          <CustomSelect label="Ders" value={lesson} options={availableLessons} onChange={(v) => { setLesson(v); setTopic(curriculum[grade][v][0]); }} />
-          <CustomSelect label="Konu" value={topic} options={availableTopics} onChange={setTopic} />
-          <CustomSelect label="Seviye" value={level} options={['Kolay anlatım', 'Orta seviye', 'Sınav odaklı', 'Detaylı öğrenme']} onChange={setLevel} />
-          <CustomSelect label="Çıktı türü" value={outputType} options={['Detaylı ders notu', 'Kısa özet', 'Formül ve kavram listesi', 'Yazılıya hazırlık notu', 'TYT/AYT tekrar notu']} onChange={setOutputType} />
-        </div>
-
-        <div style={{ marginTop: '1.5rem' }}>
-          <label style={{ fontSize: '0.875rem', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>Ek İstek (Opsiyonel)</label>
-          <textarea rows="2" value={extra} onChange={(e) => setExtra(e.target.value)} placeholder="Örn: Çok basit anlat, 10 soru ekle..." />
-        </div>
-
-        <button className="btn-primary" onClick={generateNote} disabled={loading} style={{ marginTop: '1.5rem', width: '100%' }}>
-          {loading ? 'Hazırlanıyor...' : 'Ders Notu Oluştur'}
-        </button>
-      </section>
-
-      {/* YKS Calculator */}
-      <section id="tools" className="card">
-        <div style={{ marginBottom: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>YKS Puan ve Sıralama Hesaplama</h2>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-          <CustomSelect label="Puan Türü" value={scoreType} options={['Sayısal', 'Eşit Ağırlık', 'Sözel']} onChange={v => { setScoreType(v); markYksDirty(); }} />
-          <div>
-            <label style={{ fontSize: '0.875rem', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>Diploma Notu</label>
-            <input type="text" value={diplomaGrade} onChange={e => { setDiplomaGrade(e.target.value.replace(/\D/g, '')); markYksDirty(); }} />
-          </div>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
-          <div>
-            <h3 style={{ marginBottom: '1rem', fontSize: '1.125rem' }}>TYT Netleri</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {renderExamRow('Türkçe (40)', 'tytTurkish')}
-              {renderExamRow('Sosyal (20)', 'tytSocial')}
-              {renderExamRow('Matematik (40)', 'tytMath')}
-              {renderExamRow('Fen (20)', 'tytScience')}
+      {/* Features Grid */}
+      <section className="container" style={{ maxWidth: '1000px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
+          
+          <Link href="/not-olustur" className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '1rem' }}>
+            <div style={{ padding: '1rem', background: 'var(--primary-soft)', borderRadius: 'var(--radius-lg)', color: 'var(--primary)' }}>
+              <BookOpen size={32} />
             </div>
-          </div>
-          <div>
-            <h3 style={{ marginBottom: '1rem', fontSize: '1.125rem' }}>AYT Netleri</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {(scoreType === 'Sayısal' || scoreType === 'Eşit Ağırlık') && renderExamRow('Matematik (40)', 'aytMath')}
-              {scoreType === 'Sayısal' && (
-                <>
-                  {renderExamRow('Fizik (14)', 'aytPhysics')}
-                  {renderExamRow('Kimya (13)', 'aytChem')}
-                  {renderExamRow('Biyoloji (13)', 'aytBio')}
-                </>
-              )}
-              {(scoreType === 'Eşit Ağırlık' || scoreType === 'Sözel') && (
-                <>
-                  {renderExamRow('Edebiyat (24)', 'aytEdebiyat')}
-                  {renderExamRow('Tarih-1 (10)', 'aytTarih1')}
-                  {renderExamRow('Coğrafya-1 (6)', 'aytCografya1')}
-                </>
-              )}
-              {scoreType === 'Sözel' && (
-                <>
-                  {renderExamRow('Tarih-2 (11)', 'aytTarih2')}
-                  {renderExamRow('Coğrafya-2 (11)', 'aytCografya2')}
-                  {renderExamRow('Felsefe (12)', 'aytFelsefe')}
-                  {renderExamRow('Din (6)', 'aytDin')}
-                </>
-              )}
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>AI Ders Notu</h2>
+            <p style={{ color: 'var(--text-muted)' }}>İstediğin sınıf ve konuyu seç, yapay zeka senin için mükemmel bir çalışma notu hazırlasın. Üstelik bu notları profilinde saklayabilirsin.</p>
+          </Link>
+
+          <Link href="/yks-hesaplama" className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '1rem' }}>
+            <div style={{ padding: '1rem', background: 'rgba(244, 63, 94, 0.15)', borderRadius: 'var(--radius-lg)', color: 'var(--accent)' }}>
+              <Calculator size={32} />
             </div>
-          </div>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>YKS Hesaplama</h2>
+            <p style={{ color: 'var(--text-muted)' }}>ÖSYM'nin en güncel istatistiklerine göre netlerini gir ve tahmini sıralamanı anında gör. Hedefini belirle.</p>
+          </Link>
+
+          <Link href="/mesajlar" className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '1rem' }}>
+            <div style={{ padding: '1rem', background: 'rgba(16, 185, 129, 0.15)', borderRadius: 'var(--radius-lg)', color: '#10b981' }}>
+              <MessageCircle size={32} />
+            </div>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Soru Çözüm Kanalları</h2>
+            <p style={{ color: 'var(--text-muted)' }}>Matematik, Fizik gibi kanallara gir, fotoğraf yükleyerek yapamadığın soruları diğer öğrencilere sor. (48 saatte silinir)</p>
+          </Link>
+
+          <Link href="/topluluk" className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '1rem' }}>
+            <div style={{ padding: '1rem', background: 'rgba(245, 158, 11, 0.15)', borderRadius: 'var(--radius-lg)', color: '#f59e0b' }}>
+              <Users size={32} />
+            </div>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Öğrenci Akışı</h2>
+            <p style={{ color: 'var(--text-muted)' }}>Kendi oluşturduğun notları toplulukta paylaş, başkalarının notlarını beğen, kaydet ve yorum yap.</p>
+          </Link>
+
         </div>
-
-        {yksError && <div style={{ color: 'var(--danger)', marginTop: '1rem', fontWeight: 600 }}>{yksError}</div>}
-        {needsRecalculate && <div style={{ color: '#f59e0b', marginTop: '1rem', fontWeight: 600 }}>Değişiklik yapıldı. Yeniden hesapla butonuna bas.</div>}
-
-        <button className="btn-primary" onClick={calculateYks} style={{ marginTop: '1.5rem', width: '100%' }}>
-          Hesapla
-        </button>
-
-        {calculatedYks && (
-          <div style={{ marginTop: '2rem', padding: '1.5rem', background: 'var(--primary-soft)', borderRadius: 'var(--radius-lg)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
-            <div><small style={{ color: 'var(--text-muted)' }}>TYT Net</small><div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{calculatedYks.totalTytNet.toFixed(2)}</div></div>
-            <div><small style={{ color: 'var(--text-muted)' }}>AYT Net</small><div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{calculatedYks.selectedAytNet.toFixed(2)}</div></div>
-            <div><small style={{ color: 'var(--text-muted)' }}>OBP</small><div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{calculatedYks.obp.toFixed(2)}</div></div>
-            <div><small style={{ color: 'var(--text-muted)' }}>Puan</small><div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary)' }}>{calculatedYks.estimatedPlacementScore.toFixed(2)}</div></div>
-            <div><small style={{ color: 'var(--text-muted)' }}>Sıralama ({scoreType})</small><div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary)' }}>{calculatedYks.estimatedRank}</div></div>
-          </div>
-        )}
       </section>
+
     </main>
   );
 }

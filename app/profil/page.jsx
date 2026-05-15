@@ -42,6 +42,22 @@ export default function ProfilePage() {
     setEditing(false);
   }
 
+  async function handleShareNote(note) {
+    if (!user) return;
+    const confirmShare = window.confirm(`"${note.lesson} - ${note.topic}" notunu toplulukla paylaşmak istiyor musun?`);
+    if (!confirmShare) return;
+
+    await supabase.from('posts').insert({
+      user_id: user.id,
+      content: `Herkese selam! Az önce "${note.lesson}" dersinden "${note.topic}" konusu için çalışmamı tamamladım. İncelemek isteyenler için notumu paylaşıyorum. 🚀`,
+      note_id: note.id,
+      lesson: note.lesson,
+      topic: note.topic
+    });
+
+    alert('Notun başarıyla toplulukta paylaşıldı!');
+  }
+
   return (
     <div className="container" style={{ padding: '2rem 1rem' }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
@@ -113,15 +129,25 @@ export default function ProfilePage() {
           </div>
 
           <div className="card">
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1rem' }}>Son Notlar</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1rem' }}>Geçmiş Notlarım (Gizli)</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '0.5rem' }}>
               {savedNotes.length === 0 ? (
                 <p style={{ color: 'var(--text-muted)' }}>Henüz not oluşturmadın.</p>
               ) : (
-                savedNotes.slice(0, 5).map(note => (
-                  <div key={note.id} style={{ padding: '1rem', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)' }}>
-                    <div style={{ fontWeight: 600 }}>{note.lesson} - {note.topic}</div>
-                    <small style={{ color: 'var(--text-muted)' }}>{new Date(note.created_at).toLocaleDateString('tr-TR')}</small>
+                savedNotes.map(note => (
+                  <div key={note.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--surface)' }}>
+                    <div>
+                      <div style={{ fontWeight: 700, color: 'var(--primary)' }}>{note.lesson}</div>
+                      <div style={{ fontSize: '0.9rem' }}>{note.topic}</div>
+                      <small style={{ color: 'var(--text-muted)' }}>{new Date(note.created_at).toLocaleDateString('tr-TR')}</small>
+                    </div>
+                    <button 
+                      onClick={() => handleShareNote(note)}
+                      className="btn-secondary" 
+                      style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+                    >
+                      Toplulukta Paylaş
+                    </button>
                   </div>
                 ))
               )}

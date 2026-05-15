@@ -10,8 +10,8 @@ import {
 
 const navLinks = [
   { href: '/', label: 'Ana Sayfa', icon: Home },
-  { href: '/#ai-note', label: 'AI Not', icon: BookOpen },
-  { href: '/#tools', label: 'YKS Araçları', icon: Calculator },
+  { href: '/not-olustur', label: 'AI Not', icon: BookOpen },
+  { href: '/yks-hesaplama', label: 'YKS Araçları', icon: Calculator },
   { href: '/topluluk', label: 'Topluluk', icon: Users },
   { href: '/mesajlar', label: 'Mesajlar', icon: MessageCircle },
 ];

@@ -28,6 +28,7 @@ function CommunityPage() {
     const [posts, setPosts] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])([]);
     const [loading, setLoading] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(true);
     const [newPostContent, setNewPostContent] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('');
+    const [filterLesson, setFilterLesson] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('Hepsi');
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "CommunityPage.useEffect": ()=>{
             loadPosts();
@@ -48,15 +49,14 @@ function CommunityPage() {
         if (!newPostContent.trim() || !user) return;
         await __TURBOPACK__imported__module__$5b$project$5d2f$app$2f$lib$2f$supabase$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["supabase"].from('posts').insert({
             user_id: user.id,
-            content: newPostContent
+            content: newPostContent,
+            lesson: filterLesson !== 'Hepsi' ? filterLesson : null
         });
         setNewPostContent('');
         loadPosts(); // Reload to get new post
     }
     async function handleLike(postId) {
         if (!user) return;
-        // Toggle like logic would go here. For now just incrementing likes count.
-        // Ideally this involves a 'likes' table check to prevent multiple likes.
         const post = posts.find((p)=>p.id === postId);
         await __TURBOPACK__imported__module__$5b$project$5d2f$app$2f$lib$2f$supabase$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["supabase"].from('posts').update({
             likes_count: (post.likes_count || 0) + 1
@@ -66,6 +66,18 @@ function CommunityPage() {
                 likes_count: (p.likes_count || 0) + 1
             } : p));
     }
+    const lessons = [
+        'Hepsi',
+        'Türkçe',
+        'Matematik',
+        'Fizik',
+        'Kimya',
+        'Biyoloji',
+        'Tarih',
+        'Coğrafya',
+        'Edebiyat'
+    ];
+    const filteredPosts = filterLesson === 'Hepsi' ? posts : posts.filter((p)=>p.lesson === filterLesson);
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
         className: "container",
         style: {
@@ -76,13 +88,45 @@ function CommunityPage() {
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
                 style: {
                     fontSize: '2rem',
-                    fontWeight: 800,
-                    marginBottom: '2rem'
+                    fontWeight: 900,
+                    marginBottom: '1.5rem',
+                    background: 'var(--primary-gradient)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent'
                 },
                 children: "Öğrenci Topluluğu"
             }, void 0, false, {
                 fileName: "[project]/app/topluluk/page.jsx",
-                lineNumber: 59,
+                lineNumber: 60,
+                columnNumber: 7
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                style: {
+                    display: 'flex',
+                    gap: '0.5rem',
+                    overflowX: 'auto',
+                    paddingBottom: '1rem',
+                    marginBottom: '1rem',
+                    scrollbarWidth: 'none'
+                },
+                children: lessons.map((lesson)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                        onClick: ()=>setFilterLesson(lesson),
+                        className: filterLesson === lesson ? 'btn-primary' : 'btn-secondary',
+                        style: {
+                            padding: '0.5rem 1rem',
+                            fontSize: '0.875rem',
+                            borderRadius: '2rem',
+                            whiteSpace: 'nowrap'
+                        },
+                        children: lesson
+                    }, lesson, false, {
+                        fileName: "[project]/app/topluluk/page.jsx",
+                        lineNumber: 66,
+                        columnNumber: 11
+                    }, this))
+            }, void 0, false, {
+                fileName: "[project]/app/topluluk/page.jsx",
+                lineNumber: 64,
                 columnNumber: 7
             }, this),
             user && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("form", {
@@ -98,7 +142,7 @@ function CommunityPage() {
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("textarea", {
                         value: newPostContent,
                         onChange: (e)=>setNewPostContent(e.target.value),
-                        placeholder: "Ne çalışıyorsun? Bir şeyler paylaş...",
+                        placeholder: filterLesson === 'Hepsi' ? "Ne çalışıyorsun? Bir şeyler paylaş..." : `${filterLesson} hakkında bir şeyler paylaş...`,
                         rows: "3",
                         style: {
                             border: 'none',
@@ -109,7 +153,7 @@ function CommunityPage() {
                         }
                     }, void 0, false, {
                         fileName: "[project]/app/topluluk/page.jsx",
-                        lineNumber: 63,
+                        lineNumber: 79,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -123,21 +167,24 @@ function CommunityPage() {
                             type: "submit",
                             disabled: !newPostContent.trim(),
                             className: "btn-primary",
+                            style: {
+                                padding: '0.5rem 1.5rem'
+                            },
                             children: "Paylaş"
                         }, void 0, false, {
                             fileName: "[project]/app/topluluk/page.jsx",
-                            lineNumber: 71,
+                            lineNumber: 87,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/app/topluluk/page.jsx",
-                        lineNumber: 70,
+                        lineNumber: 86,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/topluluk/page.jsx",
-                lineNumber: 62,
+                lineNumber: 78,
                 columnNumber: 9
             }, this),
             loading ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -148,7 +195,7 @@ function CommunityPage() {
                 children: "Yükleniyor..."
             }, void 0, false, {
                 fileName: "[project]/app/topluluk/page.jsx",
-                lineNumber: 79,
+                lineNumber: 95,
                 columnNumber: 9
             }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                 style: {
@@ -156,18 +203,18 @@ function CommunityPage() {
                     flexDirection: 'column',
                     gap: '1.5rem'
                 },
-                children: posts.length === 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                children: filteredPosts.length === 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                     className: "card",
                     style: {
                         textAlign: 'center',
                         color: 'var(--text-muted)'
                     },
-                    children: "Henüz gönderi yok. İlk paylaşan sen ol!"
+                    children: "Bu kategoride henüz gönderi yok. İlk paylaşan sen ol!"
                 }, void 0, false, {
                     fileName: "[project]/app/topluluk/page.jsx",
-                    lineNumber: 83,
+                    lineNumber: 99,
                     columnNumber: 13
-                }, this) : posts.map((post)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                }, this) : filteredPosts.map((post)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         className: "card",
                         style: {
                             display: 'flex',
@@ -195,12 +242,12 @@ function CommunityPage() {
                                             }
                                         }, void 0, false, {
                                             fileName: "[project]/app/topluluk/page.jsx",
-                                            lineNumber: 89,
+                                            lineNumber: 105,
                                             columnNumber: 21
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/app/topluluk/page.jsx",
-                                        lineNumber: 88,
+                                        lineNumber: 104,
                                         columnNumber: 19
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -215,12 +262,12 @@ function CommunityPage() {
                                                     children: post.profiles?.display_name || 'Kullanıcı'
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/topluluk/page.jsx",
-                                                    lineNumber: 93,
+                                                    lineNumber: 109,
                                                     columnNumber: 23
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/app/topluluk/page.jsx",
-                                                lineNumber: 92,
+                                                lineNumber: 108,
                                                 columnNumber: 21
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("small", {
@@ -235,19 +282,19 @@ function CommunityPage() {
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/app/topluluk/page.jsx",
-                                                lineNumber: 95,
+                                                lineNumber: 111,
                                                 columnNumber: 21
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/app/topluluk/page.jsx",
-                                        lineNumber: 91,
+                                        lineNumber: 107,
                                         columnNumber: 19
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/topluluk/page.jsx",
-                                lineNumber: 87,
+                                lineNumber: 103,
                                 columnNumber: 17
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -258,7 +305,7 @@ function CommunityPage() {
                                 children: post.content
                             }, void 0, false, {
                                 fileName: "[project]/app/topluluk/page.jsx",
-                                lineNumber: 99,
+                                lineNumber: 115,
                                 columnNumber: 17
                             }, this),
                             post.note_id && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -273,7 +320,7 @@ function CommunityPage() {
                                         children: "Paylaşılan Ders Notu:"
                                     }, void 0, false, {
                                         fileName: "[project]/app/topluluk/page.jsx",
-                                        lineNumber: 103,
+                                        lineNumber: 119,
                                         columnNumber: 21
                                     }, this),
                                     " ",
@@ -283,7 +330,7 @@ function CommunityPage() {
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/topluluk/page.jsx",
-                                lineNumber: 102,
+                                lineNumber: 118,
                                 columnNumber: 19
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -309,7 +356,7 @@ function CommunityPage() {
                                                 size: 18
                                             }, void 0, false, {
                                                 fileName: "[project]/app/topluluk/page.jsx",
-                                                lineNumber: 109,
+                                                lineNumber: 125,
                                                 columnNumber: 21
                                             }, this),
                                             " ",
@@ -317,7 +364,7 @@ function CommunityPage() {
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/app/topluluk/page.jsx",
-                                        lineNumber: 108,
+                                        lineNumber: 124,
                                         columnNumber: 19
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -333,14 +380,14 @@ function CommunityPage() {
                                                 size: 18
                                             }, void 0, false, {
                                                 fileName: "[project]/app/topluluk/page.jsx",
-                                                lineNumber: 112,
+                                                lineNumber: 128,
                                                 columnNumber: 21
                                             }, this),
                                             " Yorumlar"
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/app/topluluk/page.jsx",
-                                        lineNumber: 111,
+                                        lineNumber: 127,
                                         columnNumber: 19
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -356,41 +403,41 @@ function CommunityPage() {
                                                 size: 18
                                             }, void 0, false, {
                                                 fileName: "[project]/app/topluluk/page.jsx",
-                                                lineNumber: 115,
+                                                lineNumber: 131,
                                                 columnNumber: 21
                                             }, this),
                                             " Paylaş"
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/app/topluluk/page.jsx",
-                                        lineNumber: 114,
+                                        lineNumber: 130,
                                         columnNumber: 19
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/topluluk/page.jsx",
-                                lineNumber: 107,
+                                lineNumber: 123,
                                 columnNumber: 17
                             }, this)
                         ]
                     }, post.id, true, {
                         fileName: "[project]/app/topluluk/page.jsx",
-                        lineNumber: 86,
+                        lineNumber: 102,
                         columnNumber: 15
                     }, this))
             }, void 0, false, {
                 fileName: "[project]/app/topluluk/page.jsx",
-                lineNumber: 81,
+                lineNumber: 97,
                 columnNumber: 9
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/app/topluluk/page.jsx",
-        lineNumber: 58,
+        lineNumber: 59,
         columnNumber: 5
     }, this);
 }
-_s(CommunityPage, "KthNrv1L12ILmCQ/UbrrSqkyUew=", false, function() {
+_s(CommunityPage, "teTJ7nyczrY6pyuT96qp896uqF4=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$app$2f$components$2f$AuthProvider$2e$jsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useAuth"]
     ];

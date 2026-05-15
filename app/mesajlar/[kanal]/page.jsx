@@ -1,10 +1,8 @@
-'use client';
-
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../components/AuthProvider';
-import { Send, Hash } from 'lucide-react';
+import { Send, Hash, Image as ImageIcon, X } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ChannelPage() {
@@ -13,6 +11,8 @@ export default function ChannelPage() {
   const [channel, setChannel] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -33,11 +33,9 @@ export default function ChannelPage() {
       loadData();
     }
 
-    // Realtime subscription
     const subscription = supabase
       .channel(`public:messages:channel_id=eq.${kanal}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `channel_id=eq.${kanal}` }, async (payload) => {
-        // Fetch sender profile info
         const { data: profileData } = await supabase.from('profiles').select('display_name, avatar_url').eq('id', payload.new.user_id).single();
         const msg = { ...payload.new, profiles: profileData };
         setMessages((prev) => [...prev, msg]);
@@ -53,18 +51,47 @@ export default function ChannelPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  function handleImageSelect(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Fotoğraf boyutu en fazla 5MB olabilir!');
+      return;
+    }
+    setSelectedImage(file);
+  }
+
   async function sendMessage(e) {
     e.preventDefault();
-    if (!newMessage.trim() || !user) return;
+    if ((!newMessage.trim() && !selectedImage) || !user || uploading) return;
 
-    const content = newMessage;
+    setUploading(true);
+    let imageUrl = null;
+
+    if (selectedImage) {
+      const fileExt = selectedImage.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage.from('chat-images').upload(filePath, selectedImage);
+      
+      if (!uploadError) {
+        const { data } = supabase.storage.from('chat-images').getPublicUrl(filePath);
+        imageUrl = data.publicUrl;
+      }
+    }
+
+    const content = newMessage || (imageUrl ? '📷 Fotoğraf paylaştı' : '');
     setNewMessage('');
+    setSelectedImage(null);
 
     await supabase.from('messages').insert({
       channel_id: kanal,
       user_id: user.id,
-      content
+      content,
+      image_url: imageUrl
     });
+    setUploading(false);
   }
 
   if (!channel) return <div className="container" style={{ padding: '4rem 1rem', textAlign: 'center' }}>Yükleniyor...</div>;
@@ -84,7 +111,6 @@ export default function ChannelPage() {
 
       <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 0 }}>
         
-        {/* Messages Area */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {messages.map((msg, idx) => {
             const isMe = msg.user_id === user?.id;
@@ -117,9 +143,15 @@ export default function ChannelPage() {
                     padding: '0.75rem 1rem', 
                     borderRadius: 'var(--radius-lg)',
                     borderTopRightRadius: isMe && showHeader ? '0.25rem' : 'var(--radius-lg)',
-                    borderTopLeftRadius: !isMe && showHeader ? '0.25rem' : 'var(--radius-lg)'
+                    borderTopLeftRadius: !isMe && showHeader ? '0.25rem' : 'var(--radius-lg)',
+                    display: 'flex', flexDirection: 'column', gap: '0.5rem'
                   }}>
-                    {msg.content}
+                    {msg.image_url && (
+                      <a href={msg.image_url} target="_blank" rel="noreferrer">
+                        <img src={msg.image_url} alt="Paylaşım" style={{ maxWidth: '100%', maxHeight: '300px', borderRadius: '0.5rem', border: '1px solid rgba(255,255,255,0.2)' }} />
+                      </a>
+                    )}
+                    {msg.content && <span>{msg.content}</span>}
                   </div>
                 </div>
               </div>
@@ -128,20 +160,49 @@ export default function ChannelPage() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Area */}
-        <form onSubmit={sendMessage} style={{ padding: '1rem', borderTop: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', gap: '0.5rem' }}>
+        {selectedImage && (
+          <div style={{ padding: '0.5rem 1rem', background: 'var(--surface-soft)', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Seçilen: {selectedImage.name}</span>
+            <button type="button" onClick={() => setSelectedImage(null)} style={{ color: 'var(--danger)' }}><X size={16} /></button>
+          </div>
+        )}
+
+        <form onSubmit={sendMessage} style={{ padding: '1rem', borderTop: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <label 
+            style={{ 
+              cursor: 'pointer', 
+              padding: '0.6rem 1rem', 
+              color: 'var(--primary)', 
+              background: 'var(--primary-soft)', 
+              borderRadius: '2rem', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.5rem',
+              fontWeight: 600,
+              fontSize: '0.9rem',
+              transition: 'all 0.2s' 
+            }} 
+            className="hover-bg-primary-soft"
+          >
+            <ImageIcon size={20} />
+            <span className="hidden-mobile">Fotoğraf Ekle</span>
+            <input type="file" accept="image/*" onChange={handleImageSelect} style={{ display: 'none' }} disabled={uploading || !user} />
+          </label>
           <input 
             value={newMessage} 
             onChange={(e) => setNewMessage(e.target.value)} 
             placeholder={`#${channel.name} kanalına mesaj gönder...`}
-            disabled={!user}
-            style={{ flex: 1, borderRadius: '2rem' }}
+            disabled={!user || uploading}
+            style={{ flex: 1, minWidth: '200px', borderRadius: '2rem' }}
           />
-          <button type="submit" disabled={!user || !newMessage.trim()} className="btn-primary" style={{ borderRadius: '50%', width: '48px', height: '48px', padding: 0, flexShrink: 0 }}>
-            <Send size={20} style={{ marginLeft: '4px' }} />
+          <button type="submit" disabled={!user || (!newMessage.trim() && !selectedImage) || uploading} className="btn-primary" style={{ borderRadius: '50%', width: '48px', height: '48px', padding: 0, flexShrink: 0 }}>
+            {uploading ? <div style={{ width: '20px', height: '20px', border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} /> : <Send size={20} style={{ marginLeft: '4px' }} />}
           </button>
         </form>
       </div>
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}} />
     </div>
   );
 }

@@ -12,6 +12,8 @@ export default function CommunityPage() {
   const [loading, setLoading] = useState(true);
   const [newPostContent, setNewPostContent] = useState('');
 
+  const [filterLesson, setFilterLesson] = useState('Hepsi');
+
   useEffect(() => {
     loadPosts();
   }, []);
@@ -36,6 +38,7 @@ export default function CommunityPage() {
     await supabase.from('posts').insert({
       user_id: user.id,
       content: newPostContent,
+      lesson: filterLesson !== 'Hepsi' ? filterLesson : null
     });
 
     setNewPostContent('');
@@ -44,31 +47,44 @@ export default function CommunityPage() {
 
   async function handleLike(postId) {
     if (!user) return;
-
-    // Toggle like logic would go here. For now just incrementing likes count.
-    // Ideally this involves a 'likes' table check to prevent multiple likes.
-    
     const post = posts.find(p => p.id === postId);
     await supabase.from('posts').update({ likes_count: (post.likes_count || 0) + 1 }).eq('id', postId);
-    
     setPosts(posts.map(p => p.id === postId ? { ...p, likes_count: (p.likes_count || 0) + 1 } : p));
   }
 
+  const lessons = ['Hepsi', 'Türkçe', 'Matematik', 'Fizik', 'Kimya', 'Biyoloji', 'Tarih', 'Coğrafya', 'Edebiyat'];
+  const filteredPosts = filterLesson === 'Hepsi' ? posts : posts.filter(p => p.lesson === filterLesson);
+
   return (
     <div className="container" style={{ padding: '2rem 1rem', maxWidth: '800px' }}>
-      <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '2rem' }}>Öğrenci Topluluğu</h1>
+      <h1 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '1.5rem', background: 'var(--primary-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+        Öğrenci Topluluğu
+      </h1>
+
+      <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '1rem', marginBottom: '1rem', scrollbarWidth: 'none' }}>
+        {lessons.map(lesson => (
+          <button 
+            key={lesson}
+            onClick={() => setFilterLesson(lesson)}
+            className={filterLesson === lesson ? 'btn-primary' : 'btn-secondary'}
+            style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', borderRadius: '2rem', whiteSpace: 'nowrap' }}
+          >
+            {lesson}
+          </button>
+        ))}
+      </div>
 
       {user && (
         <form onSubmit={handlePost} className="card" style={{ marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <textarea 
             value={newPostContent} 
             onChange={(e) => setNewPostContent(e.target.value)} 
-            placeholder="Ne çalışıyorsun? Bir şeyler paylaş..." 
+            placeholder={filterLesson === 'Hepsi' ? "Ne çalışıyorsun? Bir şeyler paylaş..." : `${filterLesson} hakkında bir şeyler paylaş...`}
             rows="3"
             style={{ border: 'none', background: 'transparent', resize: 'none', outline: 'none', padding: 0 }}
           />
           <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
-            <button type="submit" disabled={!newPostContent.trim()} className="btn-primary">
+            <button type="submit" disabled={!newPostContent.trim()} className="btn-primary" style={{ padding: '0.5rem 1.5rem' }}>
               Paylaş
             </button>
           </div>
@@ -79,10 +95,10 @@ export default function CommunityPage() {
         <div style={{ textAlign: 'center', padding: '2rem' }}>Yükleniyor...</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {posts.length === 0 ? (
-            <div className="card" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Henüz gönderi yok. İlk paylaşan sen ol!</div>
+          {filteredPosts.length === 0 ? (
+            <div className="card" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Bu kategoride henüz gönderi yok. İlk paylaşan sen ol!</div>
           ) : (
-            posts.map(post => (
+            filteredPosts.map(post => (
               <div key={post.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                   <Link href={`/profil/${post.user_id}`}>
