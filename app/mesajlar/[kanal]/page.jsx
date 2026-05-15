@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../components/AuthProvider';
-import { Send, Hash, Image as ImageIcon, X } from 'lucide-react';
+import { Send, Hash, Image as ImageIcon, X, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ChannelPage() {
@@ -15,6 +15,8 @@ export default function ChannelPage() {
   const [newMessage, setNewMessage] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [deletingMsgId, setDeletingMsgId] = useState(null);
+  const [lightboxUrl, setLightboxUrl] = useState(null);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -42,6 +44,9 @@ export default function ChannelPage() {
         const msg = { ...payload.new, profiles: profileData };
         setMessages((prev) => [...prev, msg]);
       })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages', filter: `channel_id=eq.${kanal}` }, (payload) => {
+        setMessages((prev) => prev.filter(m => m.id !== payload.old.id));
+      })
       .subscribe();
 
     return () => {
@@ -61,6 +66,34 @@ export default function ChannelPage() {
       return;
     }
     setSelectedImage(file);
+  }
+
+  async function handleDeleteMessage(msgId) {
+    if (!user) return;
+    
+    const msg = messages.find(m => m.id === msgId);
+    
+    // Eğer fotoğraf varsa storage'dan da sil
+    if (msg?.image_url) {
+      try {
+        const url = new URL(msg.image_url);
+        const pathParts = url.pathname.split('/chat-images/');
+        if (pathParts[1]) {
+          await supabase.storage.from('chat-images').remove([decodeURIComponent(pathParts[1])]);
+        }
+      } catch (e) {
+        console.warn('Storage silme hatası:', e);
+      }
+    }
+    
+    const { error } = await supabase.from('messages').delete().eq('id', msgId).eq('user_id', user.id);
+    
+    if (error) {
+      alert('Mesaj silinemedi: ' + error.message);
+    } else {
+      setMessages(messages.filter(m => m.id !== msgId));
+    }
+    setDeletingMsgId(null);
   }
 
   async function sendMessage(e) {
@@ -124,7 +157,7 @@ export default function ChannelPage() {
             const showHeader = idx === 0 || messages[idx - 1].user_id !== msg.user_id || (new Date(msg.created_at) - new Date(messages[idx - 1].created_at)) > 300000;
             
             return (
-              <div key={msg.id} style={{ display: 'flex', gap: '1rem', flexDirection: isMe ? 'row-reverse' : 'row' }}>
+              <div key={msg.id} className="message-row" style={{ display: 'flex', gap: '1rem', flexDirection: isMe ? 'row-reverse' : 'row', position: 'relative' }}>
                 {showHeader ? (
                   <Link href={`/profil/${msg.user_id}`}>
                     <img src={msg.profiles?.avatar_url || '/default-avatar.png'} alt="Avatar" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
@@ -144,21 +177,53 @@ export default function ChannelPage() {
                       </small>
                     </div>
                   )}
-                  <div style={{ 
-                    background: isMe ? 'var(--primary)' : 'var(--surface-soft)', 
-                    color: isMe ? 'white' : 'var(--text)', 
-                    padding: '0.75rem 1rem', 
-                    borderRadius: 'var(--radius-lg)',
-                    borderTopRightRadius: isMe && showHeader ? '0.25rem' : 'var(--radius-lg)',
-                    borderTopLeftRadius: !isMe && showHeader ? '0.25rem' : 'var(--radius-lg)',
-                    display: 'flex', flexDirection: 'column', gap: '0.5rem'
-                  }}>
-                    {msg.image_url && (
-                      <a href={msg.image_url} target="_blank" rel="noreferrer">
-                        <img src={msg.image_url} alt="Paylaşım" style={{ maxWidth: '100%', maxHeight: '300px', borderRadius: '0.5rem', border: '1px solid rgba(255,255,255,0.2)' }} />
-                      </a>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexDirection: isMe ? 'row-reverse' : 'row' }}>
+                    <div style={{ 
+                      background: isMe ? 'var(--primary)' : 'var(--surface-soft)', 
+                      color: isMe ? 'white' : 'var(--text)', 
+                      padding: '0.75rem 1rem', 
+                      borderRadius: 'var(--radius-lg)',
+                      borderTopRightRadius: isMe && showHeader ? '0.25rem' : 'var(--radius-lg)',
+                      borderTopLeftRadius: !isMe && showHeader ? '0.25rem' : 'var(--radius-lg)',
+                      display: 'flex', flexDirection: 'column', gap: '0.5rem'
+                    }}>
+                      {msg.image_url && (
+                        <img 
+                          src={msg.image_url} 
+                          alt="Paylaşım" 
+                          onClick={() => setLightboxUrl(msg.image_url)}
+                          style={{ 
+                            maxWidth: '100%', maxHeight: '300px', borderRadius: '0.5rem', 
+                            border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer',
+                            transition: 'transform 0.2s'
+                          }} 
+                        />
+                      )}
+                      {msg.content && msg.content !== '📷 Fotoğraf paylaştı' && <span>{msg.content}</span>}
+                      {msg.content === '📷 Fotoğraf paylaştı' && !msg.image_url && <span>{msg.content}</span>}
+                    </div>
+                    
+                    {/* Silme Butonu - Sadece kendi mesajları için, hover'da görünür */}
+                    {isMe && (
+                      <button 
+                        onClick={() => setDeletingMsgId(msg.id)}
+                        title="Mesajı sil"
+                        className="msg-delete-btn"
+                        style={{ 
+                          color: 'var(--text-muted)', 
+                          padding: '0.35rem', 
+                          borderRadius: '50%', 
+                          transition: 'all 0.2s',
+                          opacity: 0,
+                          flexShrink: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     )}
-                    {msg.content && <span>{msg.content}</span>}
                   </div>
                 </div>
               </div>
@@ -207,8 +272,99 @@ export default function ChannelPage() {
           </button>
         </form>
       </div>
+
+      {/* Mesaj Silme Onay Modalı */}
+      {deletingMsgId && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
+          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', 
+          zIndex: 9999, padding: '1rem'
+        }}>
+          <div style={{ 
+            background: 'var(--surface)', borderRadius: 'var(--radius-lg)', 
+            padding: '2rem', maxWidth: '400px', width: '100%',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            animation: 'fadeInScale 0.2s ease-out'
+          }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.75rem' }}>Mesajı Sil</h3>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: 1.5 }}>
+              Bu mesajı silmek istediğinden emin misin? Bu işlem geri alınamaz.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={() => setDeletingMsgId(null)} 
+                className="btn-secondary" 
+                style={{ padding: '0.6rem 1.25rem' }}
+              >
+                Vazgeç
+              </button>
+              <button 
+                onClick={() => handleDeleteMessage(deletingMsgId)} 
+                style={{ 
+                  padding: '0.6rem 1.25rem', background: '#ef4444', color: 'white', 
+                  borderRadius: 'var(--radius-md)', fontWeight: 600, border: 'none',
+                  cursor: 'pointer', transition: 'all 0.2s'
+                }}
+              >
+                Evet, Sil
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fotoğraf Lightbox Modalı - Site içinde açılır */}
+      {lightboxUrl && (
+        <div 
+          onClick={() => setLightboxUrl(null)}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
+            background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', 
+            zIndex: 9999, padding: '2rem', cursor: 'zoom-out',
+            animation: 'fadeIn 0.2s ease-out'
+          }}
+        >
+          <button 
+            onClick={() => setLightboxUrl(null)}
+            style={{ 
+              position: 'absolute', top: '1rem', right: '1rem', 
+              color: 'white', background: 'rgba(255,255,255,0.15)', 
+              borderRadius: '50%', width: '44px', height: '44px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: 'none', cursor: 'pointer', transition: 'background 0.2s',
+              zIndex: 10000
+            }}
+          >
+            <X size={24} />
+          </button>
+          <img 
+            src={lightboxUrl} 
+            alt="Fotoğraf"
+            onClick={(e) => e.stopPropagation()}
+            style={{ 
+              maxWidth: '90vw', maxHeight: '90vh', borderRadius: '0.75rem', 
+              objectFit: 'contain', cursor: 'default',
+              boxShadow: '0 0 60px rgba(0,0,0,0.5)',
+              animation: 'fadeInScale 0.25s ease-out'
+            }} 
+          />
+        </div>
+      )}
+
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeInScale {
+          from { opacity: 0; transform: scale(0.9); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .message-row:hover .msg-delete-btn { opacity: 1 !important; }
+        .msg-delete-btn:hover { color: #ef4444 !important; background: rgba(239,68,68,0.1) !important; }
       `}} />
     </div>
   );

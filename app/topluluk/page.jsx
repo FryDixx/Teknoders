@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../components/AuthProvider';
-import { Heart, MessageCircle, Share2 } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function CommunityPage() {
@@ -11,6 +11,7 @@ export default function CommunityPage() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newPostContent, setNewPostContent] = useState('');
+  const [deletingPostId, setDeletingPostId] = useState(null);
 
   const [filterLesson, setFilterLesson] = useState('Hepsi');
 
@@ -47,6 +48,19 @@ export default function CommunityPage() {
       setNewPostContent('');
       loadPosts(); // Reload to get new post
     }
+  }
+
+  async function handleDelete(postId) {
+    if (!user) return;
+    
+    const { error } = await supabase.from('posts').delete().eq('id', postId).eq('user_id', user.id);
+    
+    if (error) {
+      alert('Gönderi silinemedi: ' + error.message);
+    } else {
+      setPosts(posts.filter(p => p.id !== postId));
+    }
+    setDeletingPostId(null);
   }
 
   async function handleLike(postId) {
@@ -103,17 +117,38 @@ export default function CommunityPage() {
             <div className="card" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Bu kategoride henüz gönderi yok. İlk paylaşan sen ol!</div>
           ) : (
             filteredPosts.map(post => (
-              <div key={post.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div key={post.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', position: 'relative' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                   <Link href={`/profil/${post.user_id}`}>
                     <img src={post.profiles?.avatar_url || '/default-avatar.png'} alt="Avatar" style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover' }} />
                   </Link>
-                  <div>
+                  <div style={{ flex: 1 }}>
                     <Link href={`/profil/${post.user_id}`}>
                       <strong style={{ display: 'block', fontSize: '1rem' }}>{post.profiles?.display_name || 'Kullanıcı'}</strong>
                     </Link>
                     <small style={{ color: 'var(--text-muted)' }}>@{post.profiles?.username} • {new Date(post.created_at).toLocaleDateString('tr-TR')}</small>
                   </div>
+
+                  {/* Silme Butonu - Sadece kendi postları için */}
+                  {user && user.id === post.user_id && (
+                    <button 
+                      onClick={() => setDeletingPostId(post.id)}
+                      title="Gönderiyi sil"
+                      style={{ 
+                        color: 'var(--text-muted)', 
+                        padding: '0.5rem', 
+                        borderRadius: '50%', 
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}
+                      className="hover-text-danger"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
                 </div>
                 
                 <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{post.content}</p>
@@ -141,11 +176,60 @@ export default function CommunityPage() {
                     <Share2 size={18} /> Paylaş
                   </button>
                 </div>
+
+                {/* Silme Onay Modalı */}
+                {deletingPostId === post.id && (
+                  <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
+                    background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                    zIndex: 9999, padding: '1rem'
+                  }}>
+                    <div style={{ 
+                      background: 'var(--surface)', borderRadius: 'var(--radius-lg)', 
+                      padding: '2rem', maxWidth: '400px', width: '100%',
+                      boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+                      animation: 'fadeInScale 0.2s ease-out'
+                    }}>
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.75rem' }}>Gönderiyi Sil</h3>
+                      <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: 1.5 }}>
+                        Bu gönderiyi silmek istediğinden emin misin? Bu işlem geri alınamaz.
+                      </p>
+                      <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                        <button 
+                          onClick={() => setDeletingPostId(null)} 
+                          className="btn-secondary" 
+                          style={{ padding: '0.6rem 1.25rem' }}
+                        >
+                          Vazgeç
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(post.id)} 
+                          style={{ 
+                            padding: '0.6rem 1.25rem', background: '#ef4444', color: 'white', 
+                            borderRadius: 'var(--radius-md)', fontWeight: 600, border: 'none',
+                            cursor: 'pointer', transition: 'all 0.2s'
+                          }}
+                        >
+                          Evet, Sil
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ))
           )}
         </div>
       )}
+
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes fadeInScale {
+          from { opacity: 0; transform: scale(0.9); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        .hover-text-danger:hover { color: #ef4444 !important; background: rgba(239,68,68,0.1) !important; }
+      `}} />
     </div>
   );
 }

@@ -44,15 +44,15 @@ export default function CreateNotePage() {
 
       // Eğer kullanıcı giriş yapmışsa veritabanına kaydet
       if (session?.user?.id) {
-        import('../lib/supabase').then(async ({ supabase }) => {
-          await supabase.from('saved_notes').insert({
-            user_id: session.user.id,
-            grade,
-            lesson,
-            topic,
-            content: data.note
-          });
+        const { supabase } = await import('../lib/supabase');
+        const { error: saveError } = await supabase.from('saved_notes').insert({
+          user_id: session.user.id,
+          grade,
+          lesson,
+          topic,
+          content: data.note
         });
+        if (saveError) console.error('Not kaydetme hatası:', saveError);
       }
 
       window.location.href = '/note';
