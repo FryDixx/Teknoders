@@ -43,13 +43,17 @@ function CommunityPage() {
     async function handlePost(e) {
         e.preventDefault();
         if (!newPostContent.trim() || !user) return;
-        await __TURBOPACK__imported__module__$5b$project$5d2f$app$2f$lib$2f$supabase$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["supabase"].from('posts').insert({
+        const { error } = await __TURBOPACK__imported__module__$5b$project$5d2f$app$2f$lib$2f$supabase$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["supabase"].from('posts').insert({
             user_id: user.id,
             content: newPostContent,
             lesson: filterLesson !== 'Hepsi' ? filterLesson : null
         });
-        setNewPostContent('');
-        loadPosts(); // Reload to get new post
+        if (error) {
+            alert('Gönderi paylaşılamadı: ' + error.message);
+        } else {
+            setNewPostContent('');
+            loadPosts(); // Reload to get new post
+        }
     }
     async function handleLike(postId) {
         if (!user) return;
@@ -93,7 +97,7 @@ function CommunityPage() {
                 children: "Öğrenci Topluluğu"
             }, void 0, false, {
                 fileName: "[project]/app/topluluk/page.jsx",
-                lineNumber: 60,
+                lineNumber: 64,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -117,12 +121,12 @@ function CommunityPage() {
                         children: lesson
                     }, lesson, false, {
                         fileName: "[project]/app/topluluk/page.jsx",
-                        lineNumber: 66,
+                        lineNumber: 70,
                         columnNumber: 11
                     }, this))
             }, void 0, false, {
                 fileName: "[project]/app/topluluk/page.jsx",
-                lineNumber: 64,
+                lineNumber: 68,
                 columnNumber: 7
             }, this),
             user && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("form", {
@@ -149,7 +153,7 @@ function CommunityPage() {
                         }
                     }, void 0, false, {
                         fileName: "[project]/app/topluluk/page.jsx",
-                        lineNumber: 79,
+                        lineNumber: 83,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -169,18 +173,18 @@ function CommunityPage() {
                             children: "Paylaş"
                         }, void 0, false, {
                             fileName: "[project]/app/topluluk/page.jsx",
-                            lineNumber: 87,
+                            lineNumber: 91,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/app/topluluk/page.jsx",
-                        lineNumber: 86,
+                        lineNumber: 90,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/topluluk/page.jsx",
-                lineNumber: 78,
+                lineNumber: 82,
                 columnNumber: 9
             }, this),
             loading ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -191,7 +195,7 @@ function CommunityPage() {
                 children: "Yükleniyor..."
             }, void 0, false, {
                 fileName: "[project]/app/topluluk/page.jsx",
-                lineNumber: 95,
+                lineNumber: 99,
                 columnNumber: 9
             }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                 style: {
@@ -208,7 +212,7 @@ function CommunityPage() {
                     children: "Bu kategoride henüz gönderi yok. İlk paylaşan sen ol!"
                 }, void 0, false, {
                     fileName: "[project]/app/topluluk/page.jsx",
-                    lineNumber: 99,
+                    lineNumber: 103,
                     columnNumber: 13
                 }, this) : filteredPosts.map((post)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         className: "card",
@@ -238,12 +242,12 @@ function CommunityPage() {
                                             }
                                         }, void 0, false, {
                                             fileName: "[project]/app/topluluk/page.jsx",
-                                            lineNumber: 105,
+                                            lineNumber: 109,
                                             columnNumber: 21
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/app/topluluk/page.jsx",
-                                        lineNumber: 104,
+                                        lineNumber: 108,
                                         columnNumber: 19
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -258,12 +262,12 @@ function CommunityPage() {
                                                     children: post.profiles?.display_name || 'Kullanıcı'
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/topluluk/page.jsx",
-                                                    lineNumber: 109,
+                                                    lineNumber: 113,
                                                     columnNumber: 23
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/app/topluluk/page.jsx",
-                                                lineNumber: 108,
+                                                lineNumber: 112,
                                                 columnNumber: 21
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("small", {
@@ -278,19 +282,19 @@ function CommunityPage() {
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/app/topluluk/page.jsx",
-                                                lineNumber: 111,
+                                                lineNumber: 115,
                                                 columnNumber: 21
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/app/topluluk/page.jsx",
-                                        lineNumber: 107,
+                                        lineNumber: 111,
                                         columnNumber: 19
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/topluluk/page.jsx",
-                                lineNumber: 103,
+                                lineNumber: 107,
                                 columnNumber: 17
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -301,7 +305,7 @@ function CommunityPage() {
                                 children: post.content
                             }, void 0, false, {
                                 fileName: "[project]/app/topluluk/page.jsx",
-                                lineNumber: 115,
+                                lineNumber: 119,
                                 columnNumber: 17
                             }, this),
                             post.note_id && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -316,7 +320,7 @@ function CommunityPage() {
                                         children: "Paylaşılan Ders Notu:"
                                     }, void 0, false, {
                                         fileName: "[project]/app/topluluk/page.jsx",
-                                        lineNumber: 119,
+                                        lineNumber: 123,
                                         columnNumber: 21
                                     }, this),
                                     " ",
@@ -326,7 +330,7 @@ function CommunityPage() {
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/topluluk/page.jsx",
-                                lineNumber: 118,
+                                lineNumber: 122,
                                 columnNumber: 19
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -352,7 +356,7 @@ function CommunityPage() {
                                                 size: 18
                                             }, void 0, false, {
                                                 fileName: "[project]/app/topluluk/page.jsx",
-                                                lineNumber: 125,
+                                                lineNumber: 129,
                                                 columnNumber: 21
                                             }, this),
                                             " ",
@@ -360,7 +364,7 @@ function CommunityPage() {
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/app/topluluk/page.jsx",
-                                        lineNumber: 124,
+                                        lineNumber: 128,
                                         columnNumber: 19
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -376,14 +380,14 @@ function CommunityPage() {
                                                 size: 18
                                             }, void 0, false, {
                                                 fileName: "[project]/app/topluluk/page.jsx",
-                                                lineNumber: 128,
+                                                lineNumber: 132,
                                                 columnNumber: 21
                                             }, this),
                                             " Yorumlar"
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/app/topluluk/page.jsx",
-                                        lineNumber: 127,
+                                        lineNumber: 131,
                                         columnNumber: 19
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -399,37 +403,37 @@ function CommunityPage() {
                                                 size: 18
                                             }, void 0, false, {
                                                 fileName: "[project]/app/topluluk/page.jsx",
-                                                lineNumber: 131,
+                                                lineNumber: 135,
                                                 columnNumber: 21
                                             }, this),
                                             " Paylaş"
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/app/topluluk/page.jsx",
-                                        lineNumber: 130,
+                                        lineNumber: 134,
                                         columnNumber: 19
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/topluluk/page.jsx",
-                                lineNumber: 123,
+                                lineNumber: 127,
                                 columnNumber: 17
                             }, this)
                         ]
                     }, post.id, true, {
                         fileName: "[project]/app/topluluk/page.jsx",
-                        lineNumber: 102,
+                        lineNumber: 106,
                         columnNumber: 15
                     }, this))
             }, void 0, false, {
                 fileName: "[project]/app/topluluk/page.jsx",
-                lineNumber: 97,
+                lineNumber: 101,
                 columnNumber: 9
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/app/topluluk/page.jsx",
-        lineNumber: 59,
+        lineNumber: 63,
         columnNumber: 5
     }, this);
 }

@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
@@ -82,15 +84,20 @@ export default function ChannelPage() {
     }
 
     const content = newMessage || (imageUrl ? '📷 Fotoğraf paylaştı' : '');
-    setNewMessage('');
-    setSelectedImage(null);
 
-    await supabase.from('messages').insert({
+    const { error } = await supabase.from('messages').insert({
       channel_id: kanal,
       user_id: user.id,
       content,
       image_url: imageUrl
     });
+
+    if (error) {
+      alert('Mesaj gönderilemedi: ' + error.message);
+    } else {
+      setNewMessage('');
+      setSelectedImage(null);
+    }
     setUploading(false);
   }
 

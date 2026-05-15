@@ -35,14 +35,18 @@ export default function CommunityPage() {
     e.preventDefault();
     if (!newPostContent.trim() || !user) return;
 
-    await supabase.from('posts').insert({
+    const { error } = await supabase.from('posts').insert({
       user_id: user.id,
       content: newPostContent,
       lesson: filterLesson !== 'Hepsi' ? filterLesson : null
     });
 
-    setNewPostContent('');
-    loadPosts(); // Reload to get new post
+    if (error) {
+      alert('Gönderi paylaşılamadı: ' + error.message);
+    } else {
+      setNewPostContent('');
+      loadPosts(); // Reload to get new post
+    }
   }
 
   async function handleLike(postId) {
