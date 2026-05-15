@@ -119,9 +119,15 @@ export default function CommunityPage() {
                 <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{post.content}</p>
                 
                 {post.note_id && (
-                  <div style={{ padding: '1rem', background: 'var(--primary-soft)', borderRadius: 'var(--radius-md)', border: '1px solid var(--primary)' }}>
-                    <strong>Paylaşılan Ders Notu:</strong> {post.lesson} - {post.topic}
-                  </div>
+                  <Link href={`/not/${post.note_id}`} style={{ display: 'block', padding: '1rem', background: 'var(--primary-soft)', borderRadius: 'var(--radius-md)', border: '1px solid var(--primary)', transition: 'all 0.2s', textDecoration: 'none', color: 'inherit' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <strong>📝 Paylaşılan Ders Notu</strong>
+                        <div style={{ fontSize: '0.9rem', marginTop: '0.25rem' }}>{post.lesson} {post.topic ? `— ${post.topic}` : ''}</div>
+                      </div>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary)' }}>Notu Aç →</span>
+                    </div>
+                  </Link>
                 )}
 
                 <div style={{ display: 'flex', gap: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1rem', color: 'var(--text-muted)' }}>

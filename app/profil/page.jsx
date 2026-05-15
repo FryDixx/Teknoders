@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '../components/AuthProvider';
-import { User, Book, MapPin, GraduationCap, Target, Save } from 'lucide-react';
+import { User, Book, MapPin, GraduationCap, Target, Save, Eye } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import Link from 'next/link';
 
 export default function ProfilePage() {
   const { user, profile, updateProfile, loading } = useAuth();
@@ -141,13 +142,22 @@ export default function ProfilePage() {
                       <div style={{ fontSize: '0.9rem' }}>{note.topic}</div>
                       <small style={{ color: 'var(--text-muted)' }}>{new Date(note.created_at).toLocaleDateString('tr-TR')}</small>
                     </div>
-                    <button 
-                      onClick={() => handleShareNote(note)}
-                      className="btn-secondary" 
-                      style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
-                    >
-                      Toplulukta Paylaş
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                      <Link 
+                        href={`/not/${note.id}`}
+                        className="btn-primary" 
+                        style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                      >
+                        <Eye size={14} /> Görüntüle
+                      </Link>
+                      <button 
+                        onClick={() => handleShareNote(note)}
+                        className="btn-secondary" 
+                        style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+                      >
+                        Paylaş
+                      </button>
+                    </div>
                   </div>
                 ))
               )}
